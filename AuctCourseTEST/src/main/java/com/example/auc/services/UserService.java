@@ -6,5 +6,7 @@ public interface UserService {
 
     User getByLogin(String login);
 
+    User getUserById(Integer id);
+
     boolean checkPassword(User user, String password);
 }

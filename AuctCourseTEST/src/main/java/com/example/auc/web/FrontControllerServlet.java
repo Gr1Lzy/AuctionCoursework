@@ -41,10 +41,20 @@ public class FrontControllerServlet extends HttpServlet {
                 case "/auction":
                     auction(request, response);
                     break;
-//                case "/like" -> like(request, response);
-//                case "/unlike" -> unlike(request, response);
+                case "/addLot":
+                    addLot(request, response);
+                    break;
+                case "/doAddLot":
+                    doAddLot(request, response);
+                    break;
                 case "/placeBid":
                     placeBid(request, response);
+                    break;
+                case "/toggleIsActive":
+                    toggleIsActive(request, response);
+                    break;
+                case "/delete":
+                    delete(request, response);
                     break;
                 case "/":
                 case "auctions":
@@ -78,19 +88,19 @@ public class FrontControllerServlet extends HttpServlet {
         request.getSession().invalidate();
 
         String login = request.getParameter("login");
-        User user = userService.getByLogin(login);
-        if (user == null) {
+        User currUser = userService.getByLogin(login);
+        if (currUser == null) {
             error(request, response, "Sorry, user with login '" + login + "' not exists");
             return;
         }
         String password = request.getParameter("password");
 
-        if (!userService.checkPassword(user, password)) {
+        if (!userService.checkPassword(currUser, password)) {
             error(request, response, "Sorry, wrong password");
             return;
         }
 
-        request.getSession().setAttribute("user", user);
+        request.getSession().setAttribute("currUser", currUser);
         response.sendRedirect(".");
     }
 
@@ -100,37 +110,32 @@ public class FrontControllerServlet extends HttpServlet {
         response.sendRedirect(".");
     }
 
-//    protected void like(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        User user = (User) request.getSession().getAttribute("user");
-//        if (user == null) {
-//            error(request, response, "Sorry, you need to log in");
-//            return;
-//        }
-//
-//        int movieId = Integer.parseInt(request.getParameter("movieId"));
-//        Movie movie = auctionService.getMovieById(movieId);
-//
-//        auctionService.likeMovie(movie, user);
-//        response.sendRedirect("./movie?movieId=" + movieId);
-//    }
-//    protected void unlike(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        User user = (User) request.getSession().getAttribute("user");
-//        if (user == null) {
-//            error(request, response, "Sorry, you need to log in");
-//            return;
-//        }
-//
-//        int movieId = Integer.parseInt(request.getParameter("movieId"));
-//        Auction auction = AuctionService.getAuctionById(movieId);
-//
-//        auctionService.unlikeMovie(movie, user);
-//        response.sendRedirect("./movie?movieId=" + movieId);
-//    }
+    protected void addLot(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        request.getRequestDispatcher("/WEB-INF/jsp/addLot.jsp").forward(request, response);
+    }
 
-    // todo: refactor below
+    protected void doAddLot(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User currUser = (User) request.getSession().getAttribute("currUser");
+        if (currUser == null) {
+            error(request, response, "Sorry, you need to log in");
+            return;
+        }
+
+        String title = request.getParameter("title");
+        String description = request.getParameter("description");
+        Integer startPrice = Integer.parseInt(request.getParameter("startPrice"));
+
+        Integer id = 1;
+        while (auctionService.getAuctionById(id) != null) id++;
+
+        auctionService.addAuction(new Auction(id, currUser.getUserId(), title, description, startPrice, false));
+        response.sendRedirect(".");
+    }
+
     protected void placeBid(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        User user = (User) request.getSession().getAttribute("user");
-        if (user == null) {
+
+        User currUser = (User) request.getSession().getAttribute("currUser");
+        if (currUser == null) {
             error(request, response, "Sorry, you need to log in");
             return;
         }
@@ -138,15 +143,56 @@ public class FrontControllerServlet extends HttpServlet {
         int auctionId = Integer.parseInt(request.getParameter("auctionId"));
         Auction auction = auctionService.getAuctionById(auctionId);
 
-        int bid = 0;
-        try {
-            bid = Integer.parseInt(request.getParameter("text"));
-        } catch (NumberFormatException ex) {
-            error(request, response, "Please, enter a number");
+        if (auction.getOwnerUserId().equals(currUser.getUserId())) {
+            error(request, response, "Owner cannot place bids on his own lot");
+            return;
         }
 
-        auctionService.addBid(auction, user, bid);
+        int bid = Integer.parseInt(request.getParameter("bid"));
+        if (bid < auction.getCurrentMaxBid().getValue()) {
+            error(request, response, "Please, enter a number higher than current price");
+            return;
+        }
+
+        auctionService.addBid(auction, currUser, bid);
         response.sendRedirect("./auction?auctionId=" + auctionId);
+    }
+
+    protected void toggleIsActive(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User currUser = (User) request.getSession().getAttribute("currUser");
+        if (currUser == null) {
+            error(request, response, "Sorry, you need to log in");
+            return;
+        }
+
+        int auctionId = Integer.parseInt(request.getParameter("auctionId"));
+        Auction auction = auctionService.getAuctionById(auctionId);
+
+        if (auction.getOwnerUserId() != currUser.getUserId()) {
+            error(request, response, "Only user can toggle state");
+            return;
+        }
+
+        auction.setIsActive(!auction.getIsActive());
+        response.sendRedirect("./auction?auctionId=" + auction.getAuctionId());
+    }
+
+    protected void delete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User currUser = (User) request.getSession().getAttribute("currUser");
+        if (currUser == null) {
+            error(request, response, "Sorry, you need to log in");
+            return;
+        }
+
+        int auctionId = Integer.parseInt(request.getParameter("auctionId"));
+
+        if (auctionService.getAuctionById(auctionId).getOwnerUserId() != currUser.getUserId()) {
+            error(request, response, "Only user can delete auction");
+            return;
+        }
+
+        auctionService.deleteAuction(auctionId);
+        response.sendRedirect(".");
     }
 
     protected void error(HttpServletRequest request, HttpServletResponse response, String message) throws ServletException, IOException {

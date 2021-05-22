@@ -26,15 +26,21 @@ public class AuctionServiceImpl implements AuctionService {
     }
 
     @Override
+    public void addAuction(Auction auction) { db.addAuctions(auction); }
+
+    @Override
+    public void deleteAuction(Integer auctionId) { db.deleteAuctionById(auctionId); }
+
+    @Override
+    public void addBid(Auction auction, User user, Integer bid) {
+        auction.addBid(new Pair<User, Integer>(user, bid));
+    }
+
+    @Override
     public Collection<Auction> search(String query) {
         if (query == null || query.equals("")) {
             return getAllAuctions();
         }
         return db.getAuctionsByText(query);
-    }
-
-    @Override
-    public void addBid(Auction auction, User user, Integer bid) {
-        auction.addBid(new Pair<User, Integer>(user, bid));
     }
 }

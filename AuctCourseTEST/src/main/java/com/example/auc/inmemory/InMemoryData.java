@@ -3,7 +3,6 @@ package com.example.auc.inmemory;
 import com.example.auc.model.Auction;
 import com.example.auc.model.User;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,15 +24,15 @@ public final class InMemoryData {
         users.add(new User(3, "Andrey", "andrey@example.com", "passwordandrey"));
         users.add(new User(4, "Diana", "diana@example.com", "passworddiana"));
         users.add(new User(5, "Rostik", "rostik@example.com", "passwordrostik"));
-        users.add(new User(6, "Daniel", "daniel@example.com", "passworddaniel"));
+        users.add(new User(6, "Daniel", "daniel@example.com", "1"/*"passworddaniel"*/));
 
         auctions = new ArrayList<Auction>();
-        auctions.add(new Auction(1, 1, "Lamborgini", "Aventador", 1000, Instant.now()));
-        auctions.add(new Auction(2, 2, "Ford", "Fiesta", 1000, Instant.now()));
-        auctions.add(new Auction(3, 3, "Subaru", "Forrester", 1000, Instant.now()));
-        auctions.add(new Auction(4, 4, "Opel", "Astra J", 1000, Instant.now()));
-        auctions.add(new Auction(5, 6, "Opel", "Monterey", 1000, Instant.now()));
-        //auctions.add(new Auction(6, 5, "Porshe", "911", 1000, Instant.now()));
+        auctions.add(new Auction(1, 1, "Lamborgini", "Aventador", 1000, true));
+        auctions.add(new Auction(2, 2, "Ford", "Fiesta", 1000, true));
+        auctions.add(new Auction(3, 3, "Subaru", "Forrester", 1000, true));
+        auctions.add(new Auction(4, 4, "Opel", "Astra J", 1000, true));
+        auctions.add(new Auction(5, 6, "Opel", "Monterey", 1000, true));
+        auctions.add(new Auction(6, 5, "Porshe", "911", 1000, true));
 
         for (User u : users) {
             usersMap.put(u.getUserId(), u);
@@ -75,6 +74,7 @@ public final class InMemoryData {
     public void deleteAuctionById(Integer id) {
         if (!auctionsMap.containsKey(id)) return;
 
+        auctionsMap.remove(id);
         for (int i = 0; i < auctions.size(); i++) {
             if (auctions.get(i).getAuctionId().equals(id)) {
                 auctions.remove(i);

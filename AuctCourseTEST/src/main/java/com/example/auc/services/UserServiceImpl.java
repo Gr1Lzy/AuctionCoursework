@@ -21,9 +21,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getUserById(Integer id) { return db.getUserById(id); }
+
+    @Override
     public boolean checkPassword(User user, String password) {
         return user.getPasswordHash().equals(passwordHasher.apply(password));
     }
-
 }
 
